@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Helper script to run a model on a specific instance
+if [ $# -lt 2 ]; then
+  echo "Usage: ollama-run INSTANCE_NUMBER MODEL [PROMPT]"
+  echo ""
+  echo "Examples:"
+  echo "  ollama-run 0 phi4 \"Write a poem\"    # Run on instance 0"
+  echo "  ollama-run 2 phi4                   # Run interactively on instance 2"
+  exit 1
+fi
+
+INSTANCE=$1
+MODEL=$2
+shift 2
+PROMPT="$@"
+
+# Validate instance number
+if ! [[ "$INSTANCE" =~ ^[0-3]$ ]]; then
+  echo "Error: Instance number must be 0, 1, 2, or 3"
+  exit 1
+fi
+
+echo "=== Running on Instance $INSTANCE (Port 1143$(( $INSTANCE + 4 ))) ==="
+if [ -n "$PROMPT" ]; then
+  OLLAMA_INSTANCE=$INSTANCE /home/explora/bin/ollama run $MODEL "$PROMPT"
+else
+  # Use -it for interactive mode with a terminal
+  docker exec -it git-ollama${INSTANCE}-1 ollama run $MODEL
+fi

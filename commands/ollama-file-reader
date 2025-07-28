@@ -1,0 +1,361 @@
+#!/bin/bash
+
+# ollama-file-reader: A script to let Ollama models read files through function calling
+# ------------------------------------------------------------------------------
+
+# Default values
+MODEL="llama3.1"
+INSTANCE=0
+PORT=$((11434 + $INSTANCE))
+SYSTEM_PROMPT="You are a helpful AI assistant with the ability to read files and list directory contents. When asked about files, use your tools to read them. Provide clear, helpful responses based on the file contents."
+TEMPERATURE=0.7
+MAX_TOKENS=2048
+
+# Help message
+show_help() {
+  echo "Usage: ollama-file-reader [OPTIONS]"
+  echo
+  echo "Start a chat session with a local Ollama model that can read files using function calling"
+  echo
+  echo "Options:"
+  echo "  -m, --model MODEL       Specify model (default: llama3.1)"
+  echo "  -i, --instance NUMBER   Specify instance number 0-3 (default: 0)"
+  echo "  -s, --system PROMPT     Specify system prompt"
+  echo "  -t, --temperature VALUE Set temperature (default: 0.7)"
+  echo "  -o, --tokens NUMBER     Set max tokens (default: 2048)"
+  echo "  -h, --help              Show this help message"
+  echo
+  echo "Only the following models support function calling:"
+  echo "  llama3.1, mistral-nemo, nemotron-mini, llama3-groq-tool-use, firefunction-v2, command-r-plus"
+  echo
+  echo "Examples:"
+  echo "  ollama-file-reader"
+  echo "  ollama-file-reader -m llama3.1 -i 1"
+  echo
+  echo "During the chat session, you can ask questions like:"
+  echo "  \"What does the file /path/to/your/file.txt contain?\""
+  echo "  \"Can you summarize /path/to/your/document.md?\""
+  echo "  \"List the files in /path/to/your/directory\""
+  exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -m|--model)
+      MODEL="$2"
+      shift 2
+      ;;
+    -i|--instance)
+      INSTANCE="$2"
+      if ! [[ "$INSTANCE" =~ ^[0-3]$ ]]; then
+        echo "Error: Instance must be a number between 0 and 3"
+        exit 1
+      fi
+      PORT=$((11434 + $INSTANCE))
+      shift 2
+      ;;
+    -s|--system)
+      SYSTEM_PROMPT="$2"
+      shift 2
+      ;;
+    -t|--temperature)
+      TEMPERATURE="$2"
+      shift 2
+      ;;
+    -o|--tokens)
+      MAX_TOKENS="$2"
+      shift 2
+      ;;
+    -h|--help)
+      show_help
+      ;;
+    *)
+      echo "Unknown option: $1"
+      show_help
+      ;;
+  esac
+done
+
+# Check if the model supports function calling
+function_calling_models=("llama3.1" "mistral-nemo" "nemotron-mini" "llama3-groq-tool-use" "firefunction-v2" "command-r-plus")
+model_supported=false
+
+for supported_model in "${function_calling_models[@]}"; do
+  if [[ "$MODEL" == "$supported_model" ]]; then
+    model_supported=true
+    break
+  fi
+done
+
+if ! $model_supported; then
+  echo "Warning: Model '$MODEL' may not support function calling."
+  echo "For best results, use one of: ${function_calling_models[*]}"
+  echo "Do you want to continue anyway? (y/n)"
+  read -r response
+  if [[ "$response" != "y" ]]; then
+    exit 0
+  fi
+fi
+
+# Confirm the model exists in the container
+if ! OLLAMA_INSTANCE=$INSTANCE ollama list | grep -q "$MODEL"; then
+  echo "Model '$MODEL' not found on instance $INSTANCE. Attempting to pull it..."
+  OLLAMA_INSTANCE=$INSTANCE ollama pull "$MODEL"
+  
+  if [ $? -ne 0 ]; then
+    echo "Failed to pull the model. Exiting."
+    exit 1
+  fi
+fi
+
+echo "=== Starting file reader with $MODEL on instance $INSTANCE (port $PORT) ==="
+echo "You can now chat with the model and ask it to read files for you."
+echo "Type 'exit' to end the session."
+echo "-------------------------------------------"
+
+# Define file operation functions (for reference)
+read_file_function='{
+  "name": "read_file_content",
+  "description": "Read the content of a file and return it as a string",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "file_path": {
+        "type": "string",
+        "description": "The path to the file to read"
+      }
+    },
+    "required": ["file_path"]
+  }
+}'
+
+list_dir_function='{
+  "name": "list_directory_contents", 
+  "description": "List the contents of a directory",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "directory_path": {
+        "type": "string",
+        "description": "The path to the directory to list"
+      }
+    },
+    "required": ["directory_path"]
+  }
+}'
+
+file_info_function='{
+  "name": "file_info",
+  "description": "Get information about a file or directory such as size, modification time, and type",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "file_path": {
+        "type": "string",
+        "description": "The path to the file or directory to get information about"
+      }
+    },
+    "required": ["file_path"]
+  }
+}'
+
+# Function to read file content
+function read_file_content() {
+  local file_path="$1"
+  
+  if [ ! -f "$file_path" ]; then
+    echo "Error: File not found at $file_path"
+    return 1
+  fi
+  
+  if [ ! -r "$file_path" ]; then
+    echo "Error: Permission denied when trying to read $file_path"
+    return 1
+  fi
+  
+  # Check file size to avoid reading extremely large files
+  local file_size=$(stat -c %s "$file_path")
+  if [ "$file_size" -gt 100000 ]; then
+    echo "File is very large ($(numfmt --to=iec-i --suffix=B $file_size)). Only displaying first 100,000 bytes."
+    head -c 100000 "$file_path"
+    echo -e "\n[...File truncated...]"
+    return 0
+  fi
+  
+  cat "$file_path"
+  return 0
+}
+
+# Function to list directory contents
+function list_directory_contents() {
+  local dir_path="$1"
+  
+  if [ ! -d "$dir_path" ]; then
+    echo "Error: Directory not found at $dir_path"
+    return 1
+  fi
+  
+  if [ ! -r "$dir_path" ]; then
+    echo "Error: Permission denied when trying to list $dir_path"
+    return 1
+  fi
+  
+  echo "Contents of $dir_path:"
+  ls -la "$dir_path" | sed '1d' | while read -r line; do
+    if [[ "$line" == *" ."* ]]; then
+      # Skip . and .. entries
+      continue
+    fi
+    echo "$line"
+  done
+  
+  return 0
+}
+
+# Function to get file information
+function file_info() {
+  local file_path="$1"
+  
+  if [ ! -e "$file_path" ]; then
+    echo "Error: File/directory not found at $file_path"
+    return 1
+  fi
+  
+  if [ -d "$file_path" ]; then
+    echo "Type: Directory"
+  elif [ -L "$file_path" ]; then
+    echo "Type: Symbolic Link to $(readlink "$file_path")"
+  else
+    echo "Type: File"
+    echo "Size: $(stat -c %s "$file_path") bytes"
+  fi
+  
+  echo "Last modified: $(stat -c %y "$file_path")"
+  echo "Permissions: $(stat -c %A "$file_path")"
+  
+  return 0
+}
+
+# Chat interaction loop
+messages='[{"role":"system","content":"'"$SYSTEM_PROMPT"'"}]'
+
+function get_model_response() {
+  local current_messages="$1"
+  local use_tools="$2"
+  
+  # Define the tools JSON if tools are enabled
+  local tools_json=""
+  if [ "$use_tools" = true ]; then
+    tools_json='"tools": [
+      {
+        "type": "function",
+        "function": '"$read_file_function"'
+      },
+      {
+        "type": "function",
+        "function": '"$list_dir_function"'
+      },
+      {
+        "type": "function",
+        "function": '"$file_info_function"'
+      }
+    ],'
+  fi
+  
+  # Create the full JSON payload
+  local json_payload='{
+    "model": "'"$MODEL"'",
+    "messages": '"$current_messages"',
+    "stream": false,
+    '"$tools_json"'
+    "temperature": '"$TEMPERATURE"',
+    "max_tokens": '"$MAX_TOKENS"'
+  }'
+  
+  # Send request to the API
+  curl -s "http://localhost:$PORT/api/chat" \
+    -H "Content-Type: application/json" \
+    -d "$json_payload"
+}
+
+while true; do
+  # Get user input
+  echo -e "\nYou: \c"
+  read -r user_input
+  
+  # Check for exit command
+  if [ "$user_input" == "exit" ]; then
+    echo "Goodbye!"
+    exit 0
+  fi
+  
+  # Add user message to the conversation
+  messages=$(echo "$messages" | jq '. + [{"role":"user","content":"'"$user_input"'"}]')
+  
+  # Get response from the model (with tools)
+  echo "AI is thinking..."
+  response=$(get_model_response "$messages" true)
+  
+  # Check if there was an error
+  if [[ "$response" == *"error"* ]]; then
+    echo "Error from API: $(echo "$response" | jq -r '.error')"
+    continue
+  fi
+  
+  # Add the model's response to our messages array
+  messages=$(echo "$messages" | jq '. + ['"$(echo "$response" | jq '.message')"']')
+  
+  # Process tool calls if any
+  tool_calls=$(echo "$response" | jq -r '.message.tool_calls // []')
+  if [ "$tool_calls" != "[]" ]; then
+    echo "(Model is using tools to answer your question...)"
+    
+    # Process each tool call
+    num_tools=$(echo "$tool_calls" | jq 'length')
+    for i in $(seq 0 $(($num_tools - 1))); do
+      function_name=$(echo "$tool_calls" | jq -r ".[$i].function.name")
+      tool_call_id=$(echo "$tool_calls" | jq -r ".[$i].id")
+      args=$(echo "$tool_calls" | jq -r ".[$i].function.arguments")
+      
+      echo "(Using $function_name...)"
+      
+      # Extract argument value based on the function name
+      if [ "$function_name" == "read_file_content" ]; then
+        file_path=$(echo "$args" | jq -r ".file_path")
+        function_response=$(read_file_content "$file_path")
+      elif [ "$function_name" == "list_directory_contents" ]; then
+        directory_path=$(echo "$args" | jq -r ".directory_path")
+        function_response=$(list_directory_contents "$directory_path")
+      elif [ "$function_name" == "file_info" ]; then
+        file_path=$(echo "$args" | jq -r ".file_path")
+        function_response=$(file_info "$file_path")
+      else
+        function_response="Unknown function: $function_name"
+      fi
+      
+      # Add the tool response to our messages array
+      tool_message='{
+        "role": "tool",
+        "tool_call_id": "'"$tool_call_id"'",
+        "name": "'"$function_name"'",
+        "content": "'"${function_response//\"/\\\"}"'"
+      }'
+      
+      messages=$(echo "$messages" | jq '. + ['"$tool_message"']')
+    done
+    
+    # Get final response from the model (without tools)
+    echo "AI is processing the file information..."
+    final_response=$(get_model_response "$messages" false)
+    
+    # Add the final response to our messages array
+    messages=$(echo "$messages" | jq '. + ['"$(echo "$final_response" | jq '.message')"']')
+    
+    # Display the final response
+    echo -e "\nAI: $(echo "$final_response" | jq -r '.message.content')"
+  else
+    # Just display the initial response since no tools were called
+    echo -e "\nAI: $(echo "$response" | jq -r '.message.content')"
+  fi
+done

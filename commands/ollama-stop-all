@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Helper script to stop running models on all Ollama instances
+if [ $# -ne 1 ]; then
+  echo "Usage: ollama-stop-all MODEL"
+  echo ""
+  echo "This will stop the specified model on all Ollama instances."
+  echo ""
+  echo "Examples:"
+  echo "  ollama-stop-all phi4     # Stop phi4 on all instances"
+  exit 1
+fi
+
+MODEL=$1
+
+echo "=== Stopping $MODEL on all Ollama instances ==="
+
+for instance in {0..3}; do
+  echo -e "\n=== Instance $instance (Port 1143$(( $instance + 4 ))) ==="
+  OLLAMA_INSTANCE=$instance ollama stop $MODEL
+done
+
+echo -e "\n=== Checking running models after stop operation ==="
+ollama-ps

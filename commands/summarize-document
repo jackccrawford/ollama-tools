@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# summarize-document: Quick document summarization with Ollama function calling
+# ----------------------------------------------------------------------------
+
+# Default values
+FILE_PATH=""
+MODEL="llama3-groq-tool-use"
+INSTANCE=0
+FORMAT="text"
+MAX_TOKENS=1024
+TEMPERATURE=0.7
+
+# Help message
+show_help() {
+  echo "Usage: summarize-document [OPTIONS] FILE_PATH"
+  echo
+  echo "Quickly summarize a document using an Ollama model with function calling"
+  echo
+  echo "Options:"
+  echo "  -m, --model MODEL         Specify model (default: llama3-groq-tool-use)"
+  echo "  -i, --instance NUMBER     Specify instance number 0-3 (default: 0)"
+  echo "  -f, --format FORMAT       Output format: text, json, bullets, markdown (default: text)"
+  echo "  -t, --temperature VALUE   Set temperature (default: 0.7)"
+  echo "  -o, --tokens NUMBER       Set max tokens for response (default: 1024)"
+  echo "  -h, --help                Show this help message"
+  echo
+  echo "Examples:"
+  echo "  summarize-document /path/to/document.md"
+  echo "  summarize-document -m llama3.1 -f bullets /path/to/document.md"
+  echo "  summarize-document -f markdown -t 0.8 /path/to/document.md"
+  echo
+  exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -m|--model)
+      MODEL="$2"
+      shift 2
+      ;;
+    -i|--instance)
+      INSTANCE="$2"
+      shift 2
+      ;;
+    -f|--format)
+      FORMAT="$2"
+      shift 2
+      ;;
+    -t|--temperature)
+      TEMPERATURE="$2"
+      shift 2
+      ;;
+    -o|--tokens)
+      MAX_TOKENS="$2"
+      shift 2
+      ;;
+    -h|--help)
+      show_help
+      ;;
+    *)
+      if [[ -z "$FILE_PATH" ]]; then
+        FILE_PATH="$1"
+      else
+        echo "Error: Unknown option or multiple file paths provided: $1"
+        show_help
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Check if a file path was provided
+if [ -z "$FILE_PATH" ]; then
+  echo "Error: No file path provided"
+  show_help
+fi
+
+# Verify file exists and is readable
+if [ ! -f "$FILE_PATH" ]; then
+  echo "Error: File not found at $FILE_PATH"
+  exit 1
+fi
+
+if [ ! -r "$FILE_PATH" ]; then
+  echo "Error: Cannot read file at $FILE_PATH (permission denied)"
+  exit 1
+fi
+
+# Verify format is valid
+if [[ ! "$FORMAT" =~ ^(text|json|bullets|markdown)$ ]]; then
+  echo "Error: Invalid format '$FORMAT'. Must be one of: text, json, bullets, markdown"
+  exit 1
+fi
+
+# Construct the prompt based on format
+PROMPT=""
+case "$FORMAT" in
+  text)
+    PROMPT="Summarize the document at $FILE_PATH in a concise paragraph."
+    ;;
+  json)
+    PROMPT="Summarize the document at $FILE_PATH and output the summary in JSON format with fields for title, summary, key_points, and main_entities."
+    ;;
+  bullets)
+    PROMPT="Summarize the document at $FILE_PATH as a bulleted list of key points."
+    ;;
+  markdown)
+    PROMPT="Summarize the document at $FILE_PATH in markdown format with appropriate headings, bullet points, and emphasis."
+    ;;
+esac
+
+# Run the summarization with ollama-file-reader
+echo "Summarizing $FILE_PATH using $MODEL (instance $INSTANCE)..."
+echo "Format: $FORMAT"
+echo "----------------------------------------"
+
+OLLAMA_INSTANCE=$INSTANCE ollama-file-reader -m "$MODEL" -i "$INSTANCE" -o "$MAX_TOKENS" -t "$TEMPERATURE" <<EOF
+$PROMPT
+exit
+EOF
+
+echo "----------------------------------------"
+echo "Summary complete!"

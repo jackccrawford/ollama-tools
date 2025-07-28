@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Helper script to stop running model on a specific instance
+if [ $# -ne 2 ]; then
+  echo "Usage: ollama-stop INSTANCE_NUMBER MODEL"
+  echo ""
+  echo "Examples:"
+  echo "  ollama-stop 0 phi4     # Stop phi4 on instance 0"
+  echo "  ollama-stop 3 llama3   # Stop llama3 on instance 3"
+  exit 1
+fi
+
+INSTANCE=$1
+MODEL=$2
+
+# Validate instance number
+if ! [[ "$INSTANCE" =~ ^[0-3]$ ]]; then
+  echo "Error: Instance number must be 0, 1, 2, or 3"
+  exit 1
+fi
+
+echo "=== Stopping $MODEL on Instance $INSTANCE (Port 1143$(( $INSTANCE + 4 ))) ==="
+OLLAMA_INSTANCE=$INSTANCE ollama stop $MODEL
+
+echo -e "\n=== Checking running models on Instance $INSTANCE after stop operation ==="
+OLLAMA_INSTANCE=$INSTANCE ollama ps

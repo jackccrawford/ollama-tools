@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Helper script to run a model on a specific instance or all instances
+if [ $# -lt 2 ]; then
+  echo "Usage: ollama-run-all [INSTANCE_NUMBER|all] MODEL [PROMPT]"
+  echo ""
+  echo "Examples:"
+  echo "  ollama-run-all 0 phi4 \"Write a poem\"        # Run on instance 0"
+  echo "  ollama-run-all all phi4 \"Write a poem\"      # Run on all instances"
+  echo "  ollama-run-all all phi4                     # Run interactively on all instances (one at a time)"
+  exit 1
+fi
+
+INSTANCE=$1
+MODEL=$2
+shift 2
+PROMPT="$@"
+
+if [ "$INSTANCE" = "all" ]; then
+  # Run on all instances
+  for i in {0..3}; do
+    echo -e "\n=== Running on Instance $i (Port 1143$(( $i + 4 ))) ==="
+    if [ -n "$PROMPT" ]; then
+      OLLAMA_INSTANCE=$i ollama run $MODEL "$PROMPT"
+    else
+      echo "Interactive mode - press Ctrl+C to stop and move to next instance"
+      OLLAMA_INSTANCE=$i ollama run $MODEL
+    fi
+  done
+else
+  # Run on specific instance
+  if [ -n "$PROMPT" ]; then
+    OLLAMA_INSTANCE=$INSTANCE ollama run $MODEL "$PROMPT"
+  else
+    OLLAMA_INSTANCE=$INSTANCE ollama run $MODEL
+  fi
+fi

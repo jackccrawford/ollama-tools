@@ -1,0 +1,149 @@
+#!/bin/bash
+
+# compare-models-reading: Compare how different Ollama models read and interpret the same file
+# -----------------------------------------------------------------------------------
+
+# Default values
+FILE_PATH=""
+MODELS=("llama3.1" "llama3-groq-tool-use" "mistral-nemo" "nemotron-mini")
+INSTANCES=(0 1 2 3)
+QUESTION="Summarize this file concisely"
+MAX_TOKENS=1024
+TEMPERATURE=0.7
+
+# Help message
+show_help() {
+  echo "Usage: compare-models-reading [OPTIONS] FILE_PATH"
+  echo
+  echo "Compare how different Ollama models read and interpret the same file"
+  echo
+  echo "Options:"
+  echo "  -m, --models MODEL1,MODEL2,...  Comma-separated models to compare (default: llama3.1,llama3-groq-tool-use,mistral-nemo,nemotron-mini)"
+  echo "  -i, --instances I1,I2,...       Comma-separated instances to use (default: 0,1,2,3)"
+  echo "  -q, --question QUESTION         Question to ask about the file (default: 'Summarize this file concisely')"
+  echo "  -t, --temperature VALUE         Set temperature (default: 0.7)"
+  echo "  -o, --tokens NUMBER             Set max tokens for response (default: 1024)"
+  echo "  -h, --help                      Show this help message"
+  echo
+  echo "Examples:"
+  echo "  compare-models-reading /path/to/file.md"
+  echo "  compare-models-reading -m llama3.1,mistral-nemo -i 0,1 /path/to/file.md"
+  echo "  compare-models-reading -q \"Explain the main concepts in this document\" /path/to/file.md"
+  echo
+  exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -m|--models)
+      IFS=',' read -r -a MODELS <<< "$2"
+      shift 2
+      ;;
+    -i|--instances)
+      IFS=',' read -r -a INSTANCES <<< "$2"
+      shift 2
+      ;;
+    -q|--question)
+      QUESTION="$2"
+      shift 2
+      ;;
+    -t|--temperature)
+      TEMPERATURE="$2"
+      shift 2
+      ;;
+    -o|--tokens)
+      MAX_TOKENS="$2"
+      shift 2
+      ;;
+    -h|--help)
+      show_help
+      ;;
+    *)
+      if [[ -z "$FILE_PATH" ]]; then
+        FILE_PATH="$1"
+      else
+        echo "Error: Unknown option or multiple file paths provided: $1"
+        show_help
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Check if a file path was provided
+if [ -z "$FILE_PATH" ]; then
+  echo "Error: No file path provided"
+  show_help
+fi
+
+# Verify file exists and is readable
+if [ ! -f "$FILE_PATH" ]; then
+  echo "Error: File not found at $FILE_PATH"
+  exit 1
+fi
+
+if [ ! -r "$FILE_PATH" ]; then
+  echo "Error: Cannot read file at $FILE_PATH (permission denied)"
+  exit 1
+fi
+
+# Verify we have enough instances for all models
+if [ ${#MODELS[@]} -gt ${#INSTANCES[@]} ]; then
+  echo "Error: Not enough instances (${#INSTANCES[@]}) for all models (${#MODELS[@]})"
+  exit 1
+fi
+
+# Function to query a model about a file
+query_model() {
+  local model="$1"
+  local instance="$2"
+  local file_path="$3"
+  local question="$4"
+  
+  echo -e "\n========================================================"
+  echo "Model: $model (instance $instance)"
+  echo "========================================================\n"
+  
+  # Read file content (for display)
+  local file_size=$(stat -c %s "$file_path")
+  if [ "$file_size" -gt 500 ]; then
+    echo "File: $file_path ($(numfmt --to=iec-i --suffix=B $file_size))"
+    echo "First 500 bytes: "
+    head -c 500 "$file_path"
+    echo -e "\n[...truncated...]\n"
+  else
+    echo "File: $file_path ($(numfmt --to=iec-i --suffix=B $file_size))"
+    cat "$file_path"
+    echo -e "\n"
+  fi
+  
+  echo "Question: $question"
+  echo -e "\nThinking...\n"
+  
+  # Create prompt that combines the question with the file path
+  local combined_prompt="$question for this file: $file_path"
+  
+  # Prepare the command to run ollama-file-reader with the specific model
+  OLLAMA_INSTANCE=$instance ollama-file-reader -m "$model" -i "$instance" -o "$MAX_TOKENS" -t "$TEMPERATURE" <<EOF
+$combined_prompt
+exit
+EOF
+}
+
+# Main comparison loop
+echo "==================================================================="
+echo "Comparing models on file: $FILE_PATH"
+echo "Question: $question"
+echo "==================================================================="
+
+# Loop through models and perform comparisons
+for i in "${!MODELS[@]}"; do
+  if [ "$i" -lt "${#INSTANCES[@]}" ]; then
+    query_model "${MODELS[$i]}" "${INSTANCES[$i]}" "$FILE_PATH" "$QUESTION" | grep -v "You: \|AI is thinking...\|AI: \|AI is processing"
+  fi
+done
+
+echo -e "\n==================================================================="
+echo "Comparison complete!"
+echo "==================================================================="

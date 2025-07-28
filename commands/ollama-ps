@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Helper script to show running models on all Ollama instances
+echo "=== Checking running models across all Ollama instances ==="
+
+for instance in {0..3}; do
+  echo -e "\n=== Instance $instance (Port 1143$(( $instance + 4 ))) ==="
+  OLLAMA_INSTANCE=$instance ollama ps 
+done

@@ -1,10 +1,23 @@
-# Ollama Multi-GPU Docker Management Tools
+# Ollama NVIDIA GPU Management Tools for the Agentic AI Community
 
-A comprehensive suite of tools for managing multiple Ollama Docker containers across multiple GPUs.
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Required-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![NVIDIA](https://img.shields.io/badge/NVIDIA-Multi--GPU-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
+[![Ollama](https://img.shields.io/badge/Ollama-Multi--Container-4285F4?style=for-the-badge)](https://ollama.ai/)
+[![Bash](https://img.shields.io/badge/Bash-Scripting-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![GPU](https://img.shields.io/badge/GPU-Preference_Management-FF6F00?style=for-the-badge&logo=nvidia&logoColor=white)]()
+[![Parallelism](https://img.shields.io/badge/Parallelism-Process--Level-22C55E?style=for-the-badge)]()
+[![Status](https://img.shields.io/badge/Status-Production_Ready-EAB308?style=for-the-badge)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Multi--Container-9ca3af?style=for-the-badge)]()
+[![Resource](https://img.shields.io/badge/Resource-Optimization-ff69b4?style=for-the-badge)]()
+
+## Multi-GPU Docker Management for Ollama
+
+A comprehensive suite of tools for managing multiple Ollama Docker containers across multiple GPUs, enabling parallel model execution and optimized resource utilization.
 
 ## Overview
 
-This toolset enables efficient management of multiple Ollama instances across multiple GPUs, allowing for:
+ollama-tools enables efficient management of multiple Ollama instances across multiple GPUs, allowing for:
 
 - Parallel model execution across different GPUs
 - GPU preference assignment for optimal resource utilization
@@ -13,13 +26,74 @@ This toolset enables efficient management of multiple Ollama instances across mu
 - Advanced file reading and document processing capabilities
 - API access for programmatic interactions
 
-## Core Architecture
+## 🚧 Project Status & Features
 
-- **Multiple Containers**: 4 Ollama Docker containers (`git-ollama0-1` through `git-ollama3-1`)
-- **Port Mapping**: Each container maps to a different port (11434-11437)
-- **GPU Preferences**: Each container has a preferred GPU while maintaining access to all GPUs
-- **Shared Models**: All containers share a common model storage directory
-- **Environment Selection**: `OLLAMA_INSTANCE` environment variable (0-3) selects the target container
+### ✅ Current Features
+- Multi-container Docker management (4 containers on separate ports)
+- GPU preference assignment system
+- Shared model storage across containers
+- Interactive and prompt-based model execution
+- File reading with function calling support
+- API access for programmatic interactions
+- Container upgrade with configuration preservation
+- Document summarization and comparison
+
+### 🚀 High-Priority TODOs
+
+#### 1. Enhanced Monitoring
+- [ ] Real-time GPU utilization tracking
+- [ ] Container health monitoring
+- [ ] Model usage statistics
+- [ ] Performance metrics dashboard
+
+#### 2. Advanced Resource Management
+- [ ] Dynamic GPU assignment based on workload
+- [ ] Automatic container scaling
+- [ ] Memory optimization for large models
+- [ ] Load balancing across containers
+
+#### 3. Extended Functionality
+- [ ] Multi-model pipeline support
+- [ ] Batch processing capabilities
+- [ ] Streaming response optimization
+- [ ] Custom model fine-tuning integration
+
+## Architecture: Multi-Container Multi-GPU Setup
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  git-ollama0-1  │    │  git-ollama1-1  │    │  git-ollama2-1  │    │  git-ollama3-1  │
+│   (Port 11434)  │    │   (Port 11435)  │    │   (Port 11436)  │    │   (Port 11437)  │
+│ Prefers GPU 0   │    │ Prefers GPU 1   │    │ Prefers GPU 2   │    │ Prefers GPU 3   │
+└────────┬────────┘    └────────┬────────┘    └────────┬────────┘    └────────┬────────┘
+         │                      │                      │                      │
+         ▼                      ▼                      ▼                      ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                             Shared Model Storage                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+         ▲                      ▲                      ▲                      ▲
+         │                      │                      │                      │
+┌────────┴────────┐    ┌────────┴────────┐    ┌────────┴────────┐    ┌────────┴────────┐
+│      GPU 0      │    │      GPU 1      │    │      GPU 2      │    │      GPU 3      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### GPU Preference System
+
+Each container is configured with a preferred GPU order:
+
+| Container | Port | Preferred GPU Order |
+|-----------|------|---------------------|
+| git-ollama0-1 | 11434 | 0,1,2,3 |
+| git-ollama1-1 | 11435 | 1,0,2,3 |
+| git-ollama2-1 | 11436 | 2,0,1,3 |
+| git-ollama3-1 | 11437 | 3,0,1,2 |
+
+This configuration:
+- Makes each container prefer a different GPU initially
+- Allows access to all GPUs if the preferred one is busy
+- Optimizes for smaller models that fit on a single GPU
+- Enables parallel execution across multiple GPUs
 
 ## Basic Usage
 
@@ -79,35 +153,6 @@ ollama-stop-all phi4
 | `sort_ollama_models.sh` | Re-pull models to update timestamps | `sort_ollama_models.sh` |
 | `upgrade-ollama-containers.sh` | Upgrade containers while preserving configs | `upgrade-ollama-containers.sh [options]` |
 | `assign-ollama-gpu-preferences.sh` | Configure GPU preferences | `assign-ollama-gpu-preferences.sh [options]` |
-
-## GPU Configuration
-
-### Preferred GPU Assignment
-
-Each container is configured with a preferred GPU order:
-
-| Container | Port | Preferred GPU Order |
-|-----------|------|---------------------|
-| git-ollama0-1 | 11434 | 0,1,2,3 |
-| git-ollama1-1 | 11435 | 1,0,2,3 |
-| git-ollama2-1 | 11436 | 2,0,1,3 |
-| git-ollama3-1 | 11437 | 3,0,1,2 |
-
-This configuration:
-- Makes each container prefer a different GPU initially
-- Allows access to all GPUs if the preferred one is busy
-- Optimizes for smaller models that fit on a single GPU
-- Enables parallel execution across multiple GPUs
-
-### Environment Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `OLLAMA_INSTANCE` | Selects which Docker container to target | `export OLLAMA_INSTANCE=0` |
-| `OLLAMA_MODELS` | Points to shared model storage location | `/root/.ollama/models` |
-| `OLLAMA_HOST` | Configures the server binding | `0.0.0.0:11434` |
-| `CUDA_VISIBLE_DEVICES` | Sets GPU preference order | `0,1,2,3` |
-| `NVIDIA_VISIBLE_DEVICES` | Controls which GPUs are visible | `all` |
 
 ## Advanced Features
 
@@ -231,13 +276,16 @@ nvidia-smi
 - **GPU Memory**: Smaller models (<12GB) can run on a single GPU, larger models may need multiple GPUs
 - **Container Overhead**: Minimal overhead from using Docker containers
 
-## Further Documentation
+## License
 
-For more detailed information, refer to the following documentation files:
-- `README_OLLAMA.md`: Overview of scripts, usage, and models
-- `ollama-gpu-assignments.md`: GPU assignment details
-- `ollama-gpu-preferred-assignments.md`: Preferred GPU configuration
-- `README_FILE_READER.md`: File reading utilities
-- `ollama-docker-vs-standard.md`: Docker vs. standard Ollama comparison
-- `ollama-upgrade-guide.md`: Container upgrade instructions
-- `ollama-gpu-preferences-guide.md`: GPU preference configuration
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+**Jack C Crawford** - CEO and Co-Founder at https://mvara.ai
+
+## Contact
+
+Email: jack@mvara.ai
+X: https://x.com/jackccrawford
+GitHub: https://github.com/jackccrawford

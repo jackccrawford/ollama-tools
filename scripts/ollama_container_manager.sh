@@ -9,7 +9,7 @@ set -e
 MODEL_DIR="/home/explora/.ollama/models"
 BASE_PORT=11434
 CONTAINER_PREFIX="git-ollama"
-IMAGE="ollama/ollama:0.9.2"
+IMAGE="ollama/ollama:latest"
 
 # Function to show usage
 show_usage() {

@@ -57,3 +57,6 @@ temp/
 # Large files
 *.zip
 *.tar.gz
+
+# Local operations directory
+local-ops/

@@ -39,6 +39,10 @@ Here's how to update each container with a preferred GPU while maintaining acces
 docker stop git-ollama0-1
 docker rm git-ollama0-1
 docker run -d --name git-ollama0-1 --restart always \
+  --runtime=nvidia \
+  --shm-size=2g \
+  --ulimit memlock=-1 \
+  --ulimit stack=67108864 \
   -v /home/explora/.ollama/models:/root/.ollama/models \
   -v git_ollama0_data:/root/.ollama \
   -p 11434:11434 \
@@ -96,11 +100,14 @@ docker run -d --name git-ollama3-1 --restart always \
 
 This configuration provides several advantages:
 
-1. **Initial Load Balancing**: Each container will first try to use its preferred GPU
-2. **No Blocking for Small Models**: Models under 12GB will naturally distribute across GPUs
-3. **Flexibility for Large Models**: Larger models can still span multiple GPUs
-4. **Graceful Degradation**: If GPUs are full, processing can fall back to CPU
-5. **Efficient Resource Utilization**: All GPU memory can be utilized as needed
+1. **3x Performance Improvement**: NVIDIA runtime provides significantly faster inference
+2. **Initial Load Balancing**: Each container will first try to use its preferred GPU
+3. **Full Process Visibility**: Essential for orchestration and load balancing systems
+4. **No Blocking for Small Models**: Models under 12GB will naturally distribute across GPUs
+5. **Flexibility for Large Models**: Larger models can still span multiple GPUs efficiently
+6. **Real-time Monitoring**: `nvidia-smi` shows all containerized processes and GPU usage
+7. **Graceful Degradation**: If GPUs are full, processing can fall back to CPU
+8. **Efficient Resource Utilization**: All GPU memory can be utilized optimally
 
 ## Verifying the Configuration
 

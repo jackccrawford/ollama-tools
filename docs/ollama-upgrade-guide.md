@@ -84,15 +84,33 @@ docker stop <container-name>
 # Remove the container (this preserves the volume data)
 docker rm <container-name>
 
-# Recreate the container with the same configuration but using the latest image
+# Recreate the container with ultra-high performance configuration
 docker run -d \
   --name <container-name> \
   --restart always \
+  --runtime=nvidia \
+  --shm-size=32g \
+  --memory=100g \
+  --cpus="10" \
+  --ulimit memlock=-1 \
+  --ulimit stack=268435456 \
+  --ulimit nofile=1048576 \
   -v <config-volume>:/root/.ollama \
   -v <shared-models-path>:/root/.ollama/models \
   -p <host-port>:11434 \
   -e OLLAMA_MODELS=/root/.ollama/models \
   -e OLLAMA_HOST=0.0.0.0:11434 \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e CUDA_VISIBLE_DEVICES=<gpu-order> \
+  -e OLLAMA_NUM_PARALLEL=3 \
+  -e OLLAMA_MAX_LOADED_MODELS=12 \
+  -e OLLAMA_FLASH_ATTENTION=1 \
+  -e OLLAMA_KV_CACHE_TYPE=f16 \
+  -e OLLAMA_KEEP_ALIVE=24h \
+  -e OMP_NUM_THREADS=8 \
+  -e CUDA_CACHE_MAXSIZE=4294967296 \
+  -e OLLAMA_LOAD_TIMEOUT=600 \
+  -e OLLAMA_REQUEST_TIMEOUT=300 \
   --gpus all \
   ollama/ollama:latest
 ```
@@ -118,7 +136,9 @@ Your current setup consists of four Ollama containers with the following configu
 - Each container has its own Docker volume for configuration (git_ollama0_data, etc.)
 - All containers share a common models directory from the host: /home/explora/.ollama/models
 - Containers are exposed on ports 11434, 11435, 11436, and 11437
-- All containers have GPU access enabled with --gpus all
+- All containers use `--runtime=nvidia` for optimal performance and GPU monitoring
+- GPU preferences are configured via `CUDA_VISIBLE_DEVICES` environment variables
+- Full GPU process visibility enabled for load balancing and orchestration
 
 ## Troubleshooting
 

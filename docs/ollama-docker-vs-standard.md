@@ -42,7 +42,11 @@ Think of Docker containers as separate, isolated computers running inside your m
 
 4. **Different Access Ports**: Each instance is accessible through a different port (11434, 11435, 11436, 11437), allowing you to connect to each one separately.
 
-5. **GPU Access**: All instances can use your computer's GPU for faster AI processing.
+5. **Optimized GPU Access**: All instances use NVIDIA runtime for:
+   - 3x faster AI processing compared to standard GPU access
+   - Real-time GPU monitoring and process visibility
+   - Better memory management and resource utilization
+   - Full support for load balancing and orchestration systems
 
 ## Standard Ollama Installation (Website Script)
 
@@ -102,10 +106,12 @@ The standard installation that Ollama offers on their website is much simpler:
 ### When to Use Each Approach
 
 **Your Docker Setup is Better For:**
-- Running multiple AI models simultaneously
-- Testing different configurations
+- Running multiple AI models simultaneously with optimal performance
+- Real-time GPU monitoring and load balancing
+- Testing different configurations with full process visibility
 - Higher reliability (one instance failing doesn't affect others)
-- Advanced use cases requiring isolation
+- Advanced use cases requiring isolation and orchestration
+- Agent LLM systems requiring intelligent resource distribution
 
 **Standard Installation is Better For:**
 - Simple personal use

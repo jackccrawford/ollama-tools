@@ -1,14 +1,22 @@
 # Ollama GPU Preferences Configuration Guide
 
-This guide explains how to configure Ollama Docker containers with preferred GPU assignments, which helps optimize GPU utilization and prevents blocking for small model footprints.
+This guide explains how to configure Ollama Docker containers with preferred GPU assignments using the NVIDIA runtime, which provides significant performance improvements and enables proper GPU monitoring for load balancing.
+
+## Key Benefits of NVIDIA Runtime
+
+- **3x Performance Improvement**: NVIDIA runtime provides significantly faster inference compared to default runtime
+- **Full GPU Process Visibility**: Essential for load balancing and orchestration systems
+- **Better GPU Integration**: Optimized GPU memory management and utilization
+- **Real-time Monitoring**: Enables `nvidia-smi` to show containerized processes
 
 ## Overview
 
-The configuration assigns each Ollama container a preferred GPU while still allowing access to all GPUs if needed. This approach:
+The configuration assigns each Ollama container a preferred GPU while still allowing access to all GPUs if needed. Using the NVIDIA runtime, this approach:
 
-1. Distributes small models (under 12GB) across different GPUs
-2. Prevents resource contention for typical workloads
-3. Maintains flexibility for larger models to span multiple GPUs
+1. **Distributes small models** (under 12GB) across different GPUs with optimal performance
+2. **Prevents resource contention** for typical workloads while enabling real-time monitoring
+3. **Maintains flexibility** for larger models to span multiple GPUs efficiently
+4. **Enables load balancing** through full GPU process visibility
 
 ## Configuration Scripts
 

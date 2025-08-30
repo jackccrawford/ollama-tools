@@ -458,8 +458,7 @@ async def main():
     async with stdio_server() as (read_stream, write_stream):
         await server.server.run(
             read_stream,
-            write_stream,
-            server.server._tool_registry
+            write_stream
         )
 
 if __name__ == "__main__":

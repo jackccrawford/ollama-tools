@@ -30,6 +30,7 @@ ollama-tools enables efficient management of multiple Ollama instances across mu
 
 ### ✅ Current Features
 - Multi-container Docker management (4 containers on separate ports)
+- **Remote host support** for distributed AI constellation architecture
 - GPU preference assignment system
 - Shared model storage across containers
 - Interactive and prompt-based model execution
@@ -37,22 +38,30 @@ ollama-tools enables efficient management of multiple Ollama instances across mu
 - API access for programmatic interactions
 - Container upgrade with configuration preservation
 - Document summarization and comparison
+- **Meta-AI orchestration** - using Ollama to intelligently decide how to use Ollama
 
 ### 🚀 High-Priority TODOs
 
-#### 1. Enhanced Monitoring
+#### 1. Meta-AI Orchestration (NEW)
+- [ ] Intelligent request routing: "Can we offload this to another instance?"
+- [ ] Performance-aware model selection: "I need a response in 10 seconds, can you handle it?"
+- [ ] Multi-step workflow automation with function calling
+- [ ] Web search → digestion → memory persistence pipelines
+- [ ] Self-assessing capability matching for optimal resource utilization
+
+#### 2. Enhanced Monitoring
 - [ ] Real-time GPU utilization tracking
 - [ ] Container health monitoring
 - [ ] Model usage statistics
 - [ ] Performance metrics dashboard
 
-#### 2. Advanced Resource Management
+#### 3. Advanced Resource Management
 - [ ] Dynamic GPU assignment based on workload
 - [ ] Automatic container scaling
 - [ ] Memory optimization for large models
 - [ ] Load balancing across containers
 
-#### 3. Extended Functionality
+#### 4. Extended Functionality
 - [ ] Multi-model pipeline support
 - [ ] Batch processing capabilities
 - [ ] Streaming response optimization
@@ -139,7 +148,7 @@ ollama-stop-all phi4
 
 | Script | Description | Usage |
 |--------|-------------|-------|
-| `ollama-api` | Send prompts via HTTP API | `ollama-api [options] "prompt"` |
+| `ollama-api` | Send prompts via HTTP API (supports remote hosts) | `ollama-api [options] "prompt"` |
 | `ollama-file-reader` | Chat with a model that can read files | `ollama-file-reader [options]` |
 | `read-with-ollama` | Python wrapper for file reading | `read-with-ollama [options]` |
 | `summarize-document` | Quick document summarization | `summarize-document [options] file_path` |
@@ -173,14 +182,32 @@ compare-models-reading /path/to/file.md
 
 ### API Access
 
-Send prompts directly to the API:
+Send prompts directly to the API with support for remote hosts:
 
 ```bash
-# Basic API call
+# Basic API call (local)
 ollama-api "What is the capital of France?"
+
+# Remote API call to distributed infrastructure
+ollama-api -r 192.168.0.224 -m gpt-oss:120b "Complex reasoning task"
 
 # Advanced API call with options
 ollama-api -m mistral -i 1 -s "You are a helpful coding assistant" "How do I read a file in Python?"
+```
+
+### Meta-AI Orchestration (Experimental)
+
+Use AI models to intelligently decide how to use AI infrastructure:
+
+```bash
+# Performance-aware routing
+ollama-api -m phi4 "I have a complex reasoning task that needs to complete in 30 seconds. Can you route this optimally?"
+
+# Capability assessment
+ollama-api "Can you analyze this dataset and determine if it should be processed locally or on the GPU cluster?"
+
+# Multi-step workflow automation
+ollama-api -m llama3.1 "Please: 1) search the web for recent AI papers, 2) digest the findings with web-digester-phi4:3b, 3) save results to memory using MCP"
 ```
 
 ## System Maintenance

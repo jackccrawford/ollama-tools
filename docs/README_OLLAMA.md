@@ -139,18 +139,22 @@ ollama-api [OPTIONS] PROMPT
 # Examples:
 ollama-api "What is the capital of France?"
 ollama-api -m mistral -i 1 "Write a poem about AI"
+ollama-api -r 192.168.0.224 -m gpt-oss:20b "Complex reasoning task"
 ollama-api -m phi4 -s "You are a helpful coding assistant" "How do I read a file in Python?"
 ```
 
 **Options:**
 - `-m, --model MODEL`: Specify model (default: phi4)
 - `-i, --instance NUMBER`: Specify instance number 0-3 (default: 0)
+- `-r, --remote HOST`: Specify remote host/IP (default: localhost)
 - `-s, --system PROMPT`: Specify system prompt
 - `-t, --temperature VALUE`: Set temperature (default: 0.7)
 - `-o, --tokens NUMBER`: Set max tokens (default: 2048)
 - `-h, --help`: Show help message
 
 This script is ideal for quickly getting responses from different models for comparison or obtaining second opinions without needing to remember complex curl commands.
+
+**Remote Host Support:** With the `-r` option, you can seamlessly distribute workloads across your AI constellation. For example, use local instances for rapid development and remote GPU clusters for heavy computational tasks.
 
 ## Available Models
 
@@ -233,6 +237,42 @@ for i in {0..3}; do echo "Container $i:"; docker exec git-ollama$i-1 nvidia-smi 
 ```
 
 This enables intelligent load balancing and orchestration across your GPU resources.
+
+## Meta-AI Orchestration: Using AI to Manage AI
+
+### Revolutionary Concept: Self-Aware Infrastructure
+
+Instead of manually deciding which model to use or where to run tasks, why not ask the AI itself? This creates an intelligent, self-orchestrating infrastructure where models can:
+
+- **Assess their own capabilities**: "Can I handle this complex task, or should it go to a more powerful model?"
+- **Route requests intelligently**: "This request needs GPU acceleration - routing to remote cluster"
+- **Coordinate multi-step workflows**: "I'll search the web, digest results, and save to memory"
+- **Optimize resource utilization**: "Local instance is busy, switching to available remote instance"
+
+### Example Interactions
+
+```bash
+# Performance-aware routing
+ollama-api -m phi4 "I have a 50-page document to analyze and need results in 2 minutes. Can you handle this or should I route elsewhere?"
+
+# Capability self-assessment
+ollama-api "I need to generate code, test it, and debug issues. What's the optimal model chain for this workflow?"
+
+# Multi-step automation
+ollama-api -m llama3.1 "Please: 1) Use function calling to search for recent papers on consciousness in AI, 2) Route findings to web-digester-phi4:3b for analysis, 3) Save structured results using memory-maker MCP"
+
+# Resource optimization
+ollama-api "Current system load is high. Can you distribute this batch of 100 queries across available instances?"
+```
+
+### Implementation Strategy
+
+1. **Smart Routing Models**: Specialized models that understand infrastructure capabilities and can make routing decisions
+2. **Function Calling Integration**: Models with access to web search, specialized processors, and MCP servers
+3. **Performance Monitoring**: Real-time capability assessment and load balancing
+4. **Workflow Orchestration**: Multi-step task coordination with automatic error recovery
+
+This creates a **truly intelligent infrastructure** where the AI system becomes self-aware and self-managing.
 
 ## Troubleshooting
 

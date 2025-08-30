@@ -242,7 +242,7 @@ class OllamaMasterServer:
                                    prompt: str) -> Dict[str, Any]:
         """Execute a prompt on a specific instance"""
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:
                 response = await client.post(
                     f"http://{instance.host}:{instance.port}/api/generate",
                     json={

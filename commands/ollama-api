@@ -6,6 +6,7 @@
 # Default values
 MODEL="phi4"
 INSTANCE=0
+HOST="localhost"
 PORT=$((11434 + $INSTANCE))
 SYSTEM_PROMPT="You are a helpful AI assistant providing a second opinion."
 TEMPERATURE=0.7
@@ -20,6 +21,7 @@ show_help() {
   echo "Options:"
   echo "  -m, --model MODEL       Specify model (default: phi4)"
   echo "  -i, --instance NUMBER   Specify instance number 0-3 (default: 0)"
+  echo "  -r, --remote HOST       Specify remote host/IP (default: localhost)"
   echo "  -s, --system PROMPT     Specify system prompt"
   echo "  -t, --temperature VALUE Set temperature (default: 0.7)"
   echo "  -o, --tokens NUMBER     Set max tokens (default: 2048)"
@@ -31,6 +33,7 @@ show_help() {
   echo "Examples:"
   echo "  ollama-api \"What is the capital of France?\""
   echo "  ollama-api -m mistral -i 1 \"Write a poem about AI\""
+  echo "  ollama-api -r 192.168.0.224 -m gpt-oss:20b \"Complex reasoning task\""
   echo "  ollama-api -m phi4 -s \"You are a helpful coding assistant\" \"How do I read a file in Python?\""
   exit 0
 }
@@ -49,6 +52,10 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       PORT=$((11434 + $INSTANCE))
+      shift 2
+      ;;
+    -r|--remote)
+      HOST="$2"
       shift 2
       ;;
     -s|--system)
@@ -100,13 +107,13 @@ JSON_PAYLOAD=$(cat <<EOF
 EOF
 )
 
-echo "=== Sending request to $MODEL on instance $INSTANCE (port $PORT) ==="
+echo "=== Sending request to $MODEL on $HOST:$PORT (instance $INSTANCE) ==="
 echo "Prompt: $PROMPT"
 echo "System: $SYSTEM_PROMPT"
 echo "------------------------------------------------"
 
 # Send the request and parse the JSON response to extract just the content
-RESPONSE=$(curl -s "http://localhost:$PORT/api/chat" \
+RESPONSE=$(curl -s "http://$HOST:$PORT/api/chat" \
      -H "Content-Type: application/json" \
      -d "$JSON_PAYLOAD" | jq -r '.message.content')
 

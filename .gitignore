@@ -60,3 +60,6 @@ temp/
 
 # Local operations directory
 local-ops/
+# Environment files with sensitive data
+mcp-servers/ollama-master/.env
+.env

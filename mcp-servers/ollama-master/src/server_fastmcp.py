@@ -13,16 +13,21 @@ This MCP server provides:
 import asyncio
 import json
 import logging
+import os
 import sys
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 
 import httpx
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 # Import workflow orchestration
 from workflows import WorkflowOrchestrator
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +47,8 @@ class OllamaInstance:
     last_check: datetime
     gpu_count: int = 0
     is_remote: bool = False
+    is_cloud: bool = False
+    api_key: Optional[str] = None
 
 @dataclass
 class ModelCapability:
@@ -91,28 +98,58 @@ class OllamaMasterOrchestrator:
                 capabilities=["code", "analysis"],
                 performance_tier="powerful",
                 preferred_tasks=["code_generation", "code_analysis"]
+            ),
+            "gpt-oss:120b": ModelCapability(
+                name="gpt-oss:120b",
+                size_gb=120.0,
+                capabilities=["reasoning", "function_calling", "vision", "code", "analysis"],
+                performance_tier="cloud",
+                preferred_tasks=["complex_reasoning", "multi_modal", "advanced_analysis", "long_context"]
             )
         }
     
     async def discover_instances(self) -> List[OllamaInstance]:
-        """Discover available Ollama instances on the network"""
+        """Discover available Ollama instances on the network and cloud"""
         discovered = []
         
+        # Check Ollama Cloud if configured
+        cloud_host = os.getenv("OLLAMA_CLOUD_HOST")
+        cloud_api_key = os.getenv("OLLAMA_CLOUD_API_KEY")
+        cloud_model = os.getenv("OLLAMA_CLOUD_MODEL", "gpt-oss:120b")
+        
+        if cloud_host and cloud_api_key:
+            cloud_instance = OllamaInstance(
+                host=cloud_host.replace("https://", "").replace("http://", ""),
+                port=int(os.getenv("OLLAMA_CLOUD_PORT", "443")),
+                name="ollama-cloud",
+                models=[cloud_model],  # Cloud typically has specific model
+                is_available=True,  # Assume cloud is always available
+                last_check=datetime.now(),
+                gpu_count=100,  # Cloud has massive GPU resources
+                is_remote=True,
+                is_cloud=True,
+                api_key=cloud_api_key
+            )
+            discovered.append(cloud_instance)
+            logger.info(f"Added Ollama Cloud instance with model {cloud_model}")
+        
         # Check local instances (ports 11434-11437)
-        for i in range(4):
-            port = 11434 + i
-            instance = await self._check_instance("localhost", port, f"mars-{i}")
-            if instance:
-                discovered.append(instance)
+        if os.getenv("OLLAMA_LOCAL_DISCOVERY", "true").lower() == "true":
+            for i in range(4):
+                port = 11434 + i
+                instance = await self._check_instance("localhost", port, f"mars-{i}")
+                if instance:
+                    discovered.append(instance)
         
         # Check remote instances (Explora at 192.168.0.224)
-        remote_host = "192.168.0.224"
-        for i in range(4):
-            port = 11434 + i
-            instance = await self._check_instance(remote_host, port, f"explora-{i}")
-            if instance:
-                instance.is_remote = True
-                discovered.append(instance)
+        remote_host = os.getenv("OLLAMA_REMOTE_HOST", "192.168.0.224")
+        if remote_host:
+            for i in range(4):
+                port = 11434 + i
+                instance = await self._check_instance(remote_host, port, f"explora-{i}")
+                if instance:
+                    instance.is_remote = True
+                    discovered.append(instance)
         
         return discovered
     
@@ -178,6 +215,19 @@ class OllamaMasterOrchestrator:
             return requirements["model"]
         
         prompt_length = len(prompt)
+        prompt_lower = prompt.lower()
+        
+        # Check if cloud model is available and needed
+        cloud_available = any(i.is_cloud for i in self.instances.values())
+        
+        # Use cloud for ultra-complex tasks
+        if cloud_available and (
+            prompt_length > 2000 or
+            "complex" in prompt_lower or
+            "advanced" in prompt_lower or
+            "analyze" in prompt_lower and prompt_length > 500
+        ):
+            return "gpt-oss:120b"  # Cloud model for maximum capability
         
         if prompt_length < 100:
             return "phi4"  # Fast model for simple queries
@@ -202,13 +252,22 @@ class OllamaMasterOrchestrator:
         if not available_instances:
             return None
         
+        # Prefer cloud for cloud models
+        if model == "gpt-oss:120b":
+            cloud = [i for i in available_instances if i.is_cloud]
+            if cloud:
+                return cloud[0]
+        
+        # Filter out cloud for non-cloud models (cloud is model-specific)
+        available_instances = [i for i in available_instances if not i.is_cloud]
+        
         model_cap = self.model_capabilities.get(model)
         if model_cap and model_cap.size_gb > 20:
-            remote = [i for i in available_instances if i.is_remote]
+            remote = [i for i in available_instances if i.is_remote and not i.is_cloud]
             if remote:
                 return remote[0]
         
-        local = [i for i in available_instances if not i.is_remote]
+        local = [i for i in available_instances if not i.is_remote and not i.is_cloud]
         return local[0] if local else available_instances[0]
     
     async def _execute_on_instance(self, 
@@ -217,9 +276,25 @@ class OllamaMasterOrchestrator:
                                    prompt: str) -> Dict[str, Any]:
         """Execute a prompt on a specific instance"""
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
+            timeout = float(os.getenv("OLLAMA_EXECUTION_TIMEOUT", "300.0"))
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                # Build URL and headers based on instance type
+                if instance.is_cloud:
+                    # Ollama Cloud uses HTTPS and requires API key
+                    protocol = "https" if instance.port == 443 else "http"
+                    url = f"{protocol}://{instance.host}/api/generate"
+                    headers = {
+                        "Authorization": f"Bearer {instance.api_key}",
+                        "Content-Type": "application/json"
+                    }
+                else:
+                    # Local/remote instances use standard HTTP
+                    url = f"http://{instance.host}:{instance.port}/api/generate"
+                    headers = {"Content-Type": "application/json"}
+                
                 response = await client.post(
-                    f"http://{instance.host}:{instance.port}/api/generate",
+                    url,
+                    headers=headers,
                     json={
                         "model": model,
                         "prompt": prompt,

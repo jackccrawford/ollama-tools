@@ -61,7 +61,7 @@ class CodeReviewCollective:
             try:
                 security_results = self.security_auditor.analyze_code(code_content, file_path)
                 results["reviews"]["security"] = security_results
-                print(f"   Security analysis complete - Risk: {security_results.get('risk_score', 'N/A')}")
+                print(f"   Security analysis complete - Risk: {security_results.get('summary', {}).get('risk_score', 'N/A')}")
             except Exception as e:
                 results["reviews"]["security"] = {"error": str(e)}
                 print(f"   Security analysis failed: {e}")
@@ -92,7 +92,7 @@ class CodeReviewCollective:
         security = reviews.get("security", {})
         if "error" not in security:
             # Convert risk score (0-100, lower is better) to quality score (0-10, higher is better)
-            risk_score = security.get("risk_score", 50)
+            risk_score = security.get("summary", {}).get("risk_score", 50)
             security_quality_score = max(0, 10 - (risk_score / 10))
             
             combined_score += security_quality_score * 0.4  # 40% weight

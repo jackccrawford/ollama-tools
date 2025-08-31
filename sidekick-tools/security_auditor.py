@@ -46,6 +46,10 @@ class SecurityAuditor:
         self.sql_patterns = [
             r'\.execute\s*\(\s*["\'].*?%s.*?["\']',  # String formatting in SQL
             r'\.execute\s*\(\s*f["\'].*?\{.*?\}.*?["\']',  # F-string in SQL
+            r'f["\'].*?SELECT.*?\{.*?\}.*?["\']',  # F-string SELECT
+            r'f["\'].*?INSERT.*?\{.*?\}.*?["\']',  # F-string INSERT  
+            r'f["\'].*?UPDATE.*?\{.*?\}.*?["\']',  # F-string UPDATE
+            r'f["\'].*?DELETE.*?\{.*?\}.*?["\']',  # F-string DELETE
             r'SELECT.*?\+.*?["\']',  # String concatenation in SELECT
             r'INSERT.*?\+.*?["\']',  # String concatenation in INSERT
             r'UPDATE.*?\+.*?["\']',  # String concatenation in UPDATE
@@ -62,7 +66,9 @@ class SecurityAuditor:
         
         self.secret_patterns = [
             r'["\'](?:api_key|apikey|api-key)\s*[=:]\s*["\'][^"\']{8,}["\']',
+            r'(?:API_KEY|api_key|apikey|api-key)\s*=\s*["\'][^"\']{8,}["\']',  # Variable assignment
             r'["\'](?:password|pwd|pass)\s*[=:]\s*["\'][^"\']{4,}["\']',
+            r'(?:PASSWORD|password|pwd|pass)\s*=\s*["\'][^"\']{4,}["\']',  # Variable assignment
             r'["\'](?:token|access_token|auth_token)\s*[=:]\s*["\'][^"\']{10,}["\']',
             r'["\'](?:secret|private_key|priv_key)\s*[=:]\s*["\'][^"\']{8,}["\']',
             r'[A-Za-z0-9]{32,}',  # Long hex strings (potential keys)
@@ -85,6 +91,22 @@ class SecurityAuditor:
             r'open\s*\(.*?user.*?input',  # File operations with user input
         ]
     
+    def analyze_code(self, code_content: str, file_path: str = "unknown") -> Dict[str, Any]:
+        """Analyze code content for security vulnerabilities - returns full report"""
+        self.findings = []
+        lines = code_content.split('\n')
+        
+        # Perform various security analyses
+        self._check_sql_injection(code_content, lines)
+        self._check_xss_vulnerabilities(code_content, lines)
+        self._check_secret_exposure(code_content, lines)
+        self._check_auth_issues(code_content, lines)
+        self._check_input_validation(code_content, lines)
+        self._check_path_traversal(code_content, lines)
+        
+        # Generate full report for integration
+        return self.generate_report(self.findings)
+    
     def analyze_file(self, file_path: str) -> List[SecurityFinding]:
         """Analyze a code file for security vulnerabilities"""
         self.findings = []
@@ -95,7 +117,10 @@ class SecurityAuditor:
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
-                lines = content.split('\n')
+                
+            # Reset findings and analyze content
+            self.findings = []
+            lines = content.split('\n')
             
             # Perform various security analyses
             self._check_sql_injection(content, lines)

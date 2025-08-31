@@ -1,0 +1,163 @@
+{
+  "verification_summary": {
+    "total_verifications": 6,
+    "truth_verified": 3,
+    "truth_violated": 2,
+    "truth_uncertain": 1,
+    "verification_time": 0.0,
+    "truth_cascade_status": "TRUTH_CASCADE_FAILED"
+  },
+  "verifications": [
+    {
+      "component": "SecurityAuditor",
+      "test_name": "SQL Injection Pattern Detection",
+      "expected_behavior": "Should detect 2 SQL injection patterns based on regex in lines 46-53",
+      "actual_behavior": "Detected 1 SQL injection findings",
+      "truth_status": "TRUTH_VIOLATED",
+      "evidence": {
+        "test_code": "\ncursor.execute(\"SELECT * FROM users WHERE id = \" + user_id)\ncursor.execute(f\"SELECT name FROM products WHERE category = {category}\")\nsafe_query = cursor.execute(\"SELECT * FROM users WHERE id = ?\", (user_id,))\n",
+        "full_results": {
+          "timestamp": "2025-08-30T20:58:08.529118",
+          "summary": {
+            "total_findings": 1,
+            "risk_score": 15,
+            "risk_level": "MEDIUM",
+            "severity_breakdown": {
+              "critical": 0,
+              "high": 1,
+              "medium": 0,
+              "low": 0,
+              "info": 0
+            },
+            "category_breakdown": {
+              "sql_injection": 1
+            }
+          },
+          "findings": [
+            {
+              "severity": "high",
+              "category": "sql_injection",
+              "title": "Potential SQL Injection",
+              "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+              "line_number": 3,
+              "code_snippet": "cursor.execute(f\"SELECT name FROM products WHERE category = {category}\")",
+              "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+              "confidence": 0.8
+            }
+          ]
+        },
+        "regex_patterns_count": 6,
+        "findings_breakdown": [
+          "sql_injection"
+        ]
+      },
+      "timestamp": "2025-08-30T20:58:08.529134",
+      "confidence": 0.95
+    },
+    {
+      "component": "SecurityAuditor",
+      "test_name": "Risk Score Calculation Algorithm",
+      "expected_behavior": "Risk score should be 15 based on algorithm in lines 274-280",
+      "actual_behavior": "Risk score is 15",
+      "truth_status": "TRUTH_VERIFIED",
+      "evidence": {
+        "severity_counts": {
+          "critical": 0,
+          "high": 1,
+          "medium": 0,
+          "low": 0,
+          "info": 0
+        },
+        "calculation_formula": "critical*25 + high*15 + medium*8 + low*3 + info*1",
+        "expected": 15,
+        "actual": 15
+      },
+      "timestamp": "2025-08-30T20:58:08.529138",
+      "confidence": 0.99
+    },
+    {
+      "component": "ArchitectureReviewer",
+      "test_name": "Cyclomatic Complexity Algorithm",
+      "expected_behavior": "Max complexity should be 6 based on algorithm in lines 354-366",
+      "actual_behavior": "Max complexity is 6",
+      "truth_status": "TRUTH_VERIFIED",
+      "evidence": {
+        "test_function": "complex_function",
+        "complexity_breakdown": [
+          {
+            "function": "complex_function",
+            "complexity": 6,
+            "line": 2
+          }
+        ],
+        "algorithm_steps": "base(1) + if_statements(3) + for_loop(1) + nested_if(1) = 6",
+        "expected": 6,
+        "actual": 6
+      },
+      "timestamp": "2025-08-30T20:58:08.530209",
+      "confidence": 0.95
+    },
+    {
+      "component": "ArchitectureReviewer",
+      "test_name": "Overall Score Weighting Formula",
+      "expected_behavior": "Overall score should be 9.1 based on weighted formula in lines 368-384",
+      "actual_behavior": "Overall score is 9.1",
+      "truth_status": "TRUTH_VERIFIED",
+      "evidence": {
+        "weights": {
+          "design_patterns": 0.2,
+          "solid_principles": 0.25,
+          "code_organization": 0.2,
+          "maintainability": 0.15,
+          "documentation": 0.1,
+          "complexity": 0.1
+        },
+        "category_scores": {
+          "design_patterns": 10,
+          "solid_principles": 10,
+          "code_organization": 9,
+          "maintainability": 10,
+          "documentation": 9,
+          "complexity": 4
+        },
+        "calculation": "Sum of (category_score * weight) for each category",
+        "expected": 9.1,
+        "actual": 9.1
+      },
+      "timestamp": "2025-08-30T20:58:08.530216",
+      "confidence": 0.99
+    },
+    {
+      "component": "CodeReviewCollective",
+      "test_name": "Combined Score Integration Formula",
+      "expected_behavior": "Combined score should be 9.7 based on formula: security_quality*0.4 + arch_score*0.6",
+      "actual_behavior": "Combined score is 7.7",
+      "truth_status": "TRUTH_VIOLATED",
+      "evidence": {
+        "security_risk_score": 0,
+        "security_quality_score": 10.0,
+        "architecture_score": 9.5,
+        "formula": "max(0, 10 - (risk_score/10)) * 0.4 + arch_score * 0.6",
+        "expected": 9.7,
+        "actual": 7.7
+      },
+      "timestamp": "2025-08-30T20:58:08.531204",
+      "confidence": 0.98
+    },
+    {
+      "component": "MemoryStorage",
+      "test_name": "Memory Storage Error Handling",
+      "expected_behavior": "Memory storage should handle errors gracefully",
+      "actual_behavior": "Exception occurred: no such column: type",
+      "truth_status": "TRUTH_UNCERTAIN",
+      "evidence": {
+        "error": "no such column: type",
+        "error_type": "OperationalError"
+      },
+      "timestamp": "2025-08-30T20:58:08.531378",
+      "confidence": 0.7
+    }
+  ],
+  "timestamp": "2025-08-30T20:58:08.531407",
+  "verifier": "Opus 2 Truth Verification Engine"
+}

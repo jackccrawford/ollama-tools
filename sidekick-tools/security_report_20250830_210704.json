@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-08-30T21:07:04.241990",
+  "summary": {
+    "total_findings": 4,
+    "risk_score": 60,
+    "risk_level": "CRITICAL",
+    "severity_breakdown": {
+      "critical": 0,
+      "high": 4,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    },
+    "category_breakdown": {
+      "sql_injection": 4
+    }
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 11,
+      "code_snippet": "query = f\"SELECT * FROM users WHERE id = {user_id}\"",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    },
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 16,
+      "code_snippet": "sql = f\"INSERT INTO {table_name} VALUES ({condition})\"",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    },
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 21,
+      "code_snippet": "update_sql = f\"UPDATE users SET data = '{user_data}' WHERE id = {user_id}\"",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    },
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 26,
+      "code_snippet": "delete_sql = f\"DELETE FROM users WHERE id = {user_id}\"",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    }
+  ]
+}

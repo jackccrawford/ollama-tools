@@ -16,7 +16,7 @@ import logging
 import os
 import sys
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 import httpx
@@ -49,6 +49,9 @@ class OllamaInstance:
     is_remote: bool = False
     is_cloud: bool = False
     api_key: Optional[str] = None
+    # Models currently loaded on the instance (from /api/ps);
+    # used for GPU-aware routing. Each entry may include size_vram, name, etc.
+    loaded_models: List[Dict[str, Any]] = field(default_factory=list)
 
 @dataclass
 class ModelCapability:
@@ -401,7 +404,8 @@ async def discover_instances() -> str:
                 "port": i.port,
                 "models": i.models,
                 "is_remote": i.is_remote,
-                "gpu_count": i.gpu_count
+                "gpu_count": i.gpu_count,
+                "loaded_models": getattr(i, "loaded_models", [])
             }
             for i in instances
         ],

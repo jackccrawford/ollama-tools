@@ -1,0 +1,93 @@
+{
+  "timestamp": "2025-08-30T20:41:01.202410",
+  "summary": {
+    "total_findings": 7,
+    "risk_score": 91,
+    "risk_level": "CRITICAL",
+    "severity_breakdown": {
+      "critical": 0,
+      "high": 5,
+      "medium": 2,
+      "low": 0,
+      "info": 0
+    },
+    "category_breakdown": {
+      "sql_injection": 4,
+      "xss": 1,
+      "auth": 1,
+      "path_traversal": 1
+    }
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 49,
+      "code_snippet": "r'SELECT.*?\\+.*?[\"\\']',  # String concatenation in SELECT",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    },
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 50,
+      "code_snippet": "r'INSERT.*?\\+.*?[\"\\']',  # String concatenation in INSERT",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    },
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 51,
+      "code_snippet": "r'UPDATE.*?\\+.*?[\"\\']',  # String concatenation in UPDATE",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    },
+    {
+      "severity": "high",
+      "category": "sql_injection",
+      "title": "Potential SQL Injection",
+      "description": "SQL query appears to use string concatenation or formatting which could lead to SQL injection",
+      "line_number": 52,
+      "code_snippet": "r'DELETE.*?\\+.*?[\"\\']',  # String concatenation in DELETE",
+      "recommendation": "Use parameterized queries or prepared statements instead of string concatenation",
+      "confidence": 0.8
+    },
+    {
+      "severity": "high",
+      "category": "xss",
+      "title": "Potential XSS Vulnerability",
+      "description": "Code appears to inject user data into HTML without proper escaping",
+      "line_number": 60,
+      "code_snippet": "r'dangerouslySetInnerHTML',  # React dangerous HTML",
+      "recommendation": "Sanitize and escape all user input before inserting into HTML",
+      "confidence": 0.75
+    },
+    {
+      "severity": "medium",
+      "category": "auth",
+      "title": "Potential Authentication Issue",
+      "description": "Code contains weak authentication or authorization patterns",
+      "line_number": 75,
+      "code_snippet": "r'admin.*?==.*?True',  # Simple admin checks",
+      "recommendation": "Implement proper authentication mechanisms and avoid hardcoded credentials",
+      "confidence": 0.6
+    },
+    {
+      "severity": "medium",
+      "category": "path_traversal",
+      "title": "Potential Path Traversal",
+      "description": "Code may be vulnerable to path traversal attacks",
+      "line_number": 237,
+      "code_snippet": "r'file_path.*?=.*?request',",
+      "recommendation": "Validate file paths and use os.path.abspath() with proper restrictions",
+      "confidence": 0.6
+    }
+  ]
+}

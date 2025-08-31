@@ -122,34 +122,60 @@ class OllamaMasterOrchestrator:
                 host=cloud_host.replace("https://", "").replace("http://", ""),
                 port=int(os.getenv("OLLAMA_CLOUD_PORT", "443")),
                 name="ollama-cloud",
-                models=[cloud_model],  # Cloud typically has specific model
-                is_available=True,  # Assume cloud is always available
+                models=[cloud_model],
+                is_available=True,
                 last_check=datetime.now(),
-                gpu_count=100,  # Cloud has massive GPU resources
+                gpu_count=100,
                 is_remote=True,
                 is_cloud=True,
                 api_key=cloud_api_key
             )
             discovered.append(cloud_instance)
-            logger.info(f"Added Ollama Cloud instance with model {cloud_model}")
         
-        # Check local instances (ports 11434-11437)
-        if os.getenv("OLLAMA_LOCAL_DISCOVERY", "true").lower() == "true":
-            for i in range(4):
-                port = 11434 + i
-                instance = await self._check_instance("localhost", port, f"mars-{i}")
-                if instance:
-                    discovered.append(instance)
+        # Check Mars instance (localhost)
+        mars_host = os.getenv("MARS_HOST", "localhost")
+        mars_port = int(os.getenv("MARS_PORT", "11434"))
+        instance = await self._check_instance(mars_host, mars_port, "mars-0")
+        if instance:
+            discovered.append(instance)
         
-        # Check remote instances (Explora at 192.168.0.224)
-        remote_host = os.getenv("OLLAMA_REMOTE_HOST", "192.168.0.224")
-        if remote_host:
+        # Check Galaxy instances (4 ports)
+        galaxy_host = os.getenv("GALAXY_HOST", "192.168.0.162")
+        if galaxy_host:
             for i in range(4):
-                port = 11434 + i
-                instance = await self._check_instance(remote_host, port, f"explora-{i}")
+                port = int(os.getenv(f"GALAXY_PORT_{i}", str(11434 + i)))
+                instance = await self._check_instance(galaxy_host, port, f"galaxy-{i}")
                 if instance:
                     instance.is_remote = True
                     discovered.append(instance)
+        
+        # Check Explora instances (4 ports)
+        explora_host = os.getenv("EXPLORA_HOST", "192.168.0.224")
+        if explora_host:
+            for i in range(4):
+                port = 11434 + i
+                instance = await self._check_instance(explora_host, port, f"explora-{i}")
+                if instance:
+                    instance.is_remote = True
+                    discovered.append(instance)
+        
+        # Check Lunar instance
+        lunar_host = os.getenv("LUNAR_HOST", "192.168.0.123")
+        lunar_port = int(os.getenv("LUNAR_PORT", "11434"))
+        if lunar_host:
+            instance = await self._check_instance(lunar_host, lunar_port, "lunar-0")
+            if instance:
+                instance.is_remote = True
+                discovered.append(instance)
+        
+        # Check Scout instance
+        scout_host = os.getenv("SCOUT_HOST", "192.168.0.181")
+        scout_port = int(os.getenv("SCOUT_PORT", "11434"))
+        if scout_host:
+            instance = await self._check_instance(scout_host, scout_port, "scout-0")
+            if instance:
+                instance.is_remote = True
+                discovered.append(instance)
         
         return discovered
     
@@ -165,6 +191,9 @@ class OllamaMasterOrchestrator:
                         models_data = models_response.json()
                         models = [m["name"] for m in models_data.get("models", [])]
                     
+                    # Get currently loaded models for GPU-aware routing
+                    loaded_models = await self._get_loaded_models(host, port)
+                    
                     return OllamaInstance(
                         host=host,
                         port=port,
@@ -172,16 +201,35 @@ class OllamaMasterOrchestrator:
                         models=models,
                         is_available=True,
                         last_check=datetime.now(),
-                        gpu_count=self._estimate_gpu_count(name)
+                        gpu_count=self._estimate_gpu_count(name),
+                        loaded_models=loaded_models
                     )
         except Exception as e:
             logger.debug(f"Instance {host}:{port} not available: {e}")
         return None
     
+    async def _get_loaded_models(self, host: str, port: int) -> List[Dict[str, Any]]:
+        """Get currently loaded models with GPU usage info"""
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                ps_response = await client.get(f"http://{host}:{port}/api/ps")
+                if ps_response.status_code == 200:
+                    ps_data = ps_response.json()
+                    return ps_data.get("models", [])
+        except Exception as e:
+            logger.debug(f"Could not get loaded models from {host}:{port}: {e}")
+        return []
+    
     def _estimate_gpu_count(self, name: str) -> int:
         """Estimate GPU count based on instance name"""
         if "explora" in name:
             return 4  # Explora has 4 GPUs
+        elif "galaxy" in name:
+            return 4  # Galaxy has 4 GPUs total
+        elif "lunar" in name:
+            return 1  # Lunar has 1 GPU
+        elif "scout" in name:
+            return 0  # Scout has no GPU (CPU only)
         return 1  # Default to 1 for local instances
     
     async def route_request(self, 
@@ -237,38 +285,51 @@ class OllamaMasterOrchestrator:
             return "gpt-oss:20b"  # Powerful model for complex tasks
     
     def _select_instance(self, model: str, requirements: Dict[str, Any]) -> Optional[OllamaInstance]:
-        """Select the best instance for running the model"""
+        """Select the best instance for the given model with GPU-aware routing"""
         available_instances = [
-            i for i in self.instances.values() 
-            if i.is_available and model in i.models
+            instance for instance in self.instances.values()
+            if instance.is_available and model in instance.models
         ]
-        
-        if not available_instances:
-            available_instances = [
-                i for i in self.instances.values() 
-                if i.is_available
-            ]
         
         if not available_instances:
             return None
         
-        # Prefer cloud for cloud models
-        if model == "gpt-oss:120b":
-            cloud = [i for i in available_instances if i.is_cloud]
-            if cloud:
-                return cloud[0]
+        # Prefer cloud for large models
+        if model in ["gpt-oss:120b"]:
+            cloud_instances = [i for i in available_instances if i.is_cloud]
+            if cloud_instances:
+                return cloud_instances[0]
         
-        # Filter out cloud for non-cloud models (cloud is model-specific)
-        available_instances = [i for i in available_instances if not i.is_cloud]
+        # GPU-aware routing: prefer instances with model already loaded
+        loaded_instances = [
+            instance for instance in available_instances
+            if any(loaded["name"] == model for loaded in getattr(instance, "loaded_models", []))
+        ]
         
-        model_cap = self.model_capabilities.get(model)
-        if model_cap and model_cap.size_gb > 20:
-            remote = [i for i in available_instances if i.is_remote and not i.is_cloud]
-            if remote:
-                return remote[0]
+        if loaded_instances:
+            # Among loaded instances, prefer those with more free GPU memory
+            return self._select_by_gpu_availability(loaded_instances)
         
-        local = [i for i in available_instances if not i.is_remote and not i.is_cloud]
-        return local[0] if local else available_instances[0]
+        # If model not loaded anywhere, prefer instances with more GPUs for complex models
+        if any(size in model for size in ["70b", "32b", "30b"]):
+            return max(available_instances, key=lambda x: x.gpu_count)
+        
+        # For smaller models, prefer instances with least GPU load
+        return self._select_by_gpu_availability(available_instances)
+    
+    def _select_by_gpu_availability(self, instances: List[OllamaInstance]) -> OllamaInstance:
+        """Select instance with best GPU availability"""
+        def gpu_load_score(instance):
+            loaded_models = getattr(instance, "loaded_models", [])
+            if not loaded_models:
+                return 0  # No load = best score
+            
+            # Calculate total VRAM usage
+            total_vram = sum(model.get("size_vram", 0) for model in loaded_models)
+            return total_vram / (instance.gpu_count * 1e9)  # Normalize by GPU count
+        
+        return min(instances, key=gpu_load_score)
+
     
     async def _execute_on_instance(self, 
                                    instance: OllamaInstance, 

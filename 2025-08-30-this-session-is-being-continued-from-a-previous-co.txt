@@ -1,0 +1,16 @@
+╭───────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                         │
+│                                                   │
+│   /help for help, /status for your current setup  │
+│                                                   │
+│   cwd: /Users/mars/Dev/ollama-tools               │
+╰───────────────────────────────────────────────────╯
+  ⎿  Read ../../Library/Application Support/Claude/config.json (59 lines)
+  ⎿  Read ../../Library/Application Support/Claude/claude_desktop_config.json (86 lines)
+  ⎿  Read pyproject.toml (21 lines)
+  ⎿  Read mcp-servers/ollama-master/src/server_fastmcp.py (475 lines)
+  ⎿  Read .gitignore (66 lines)
+
+> /compact 
+  ⎿  Compacted (ctrl+r to see full summary)
+

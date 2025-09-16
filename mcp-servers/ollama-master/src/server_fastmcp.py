@@ -312,12 +312,12 @@ async def stateful_chat(prompt: str, agent_uuid: str,
         prompt=prompt,
         agent_uuid=agent_uuid,
         model=model,
-        conversation_id=conversation_id
+        session_id=conversation_id
     )
     
     # Add session token to response
-    if "conversation_id" in result:
-        result["session_token"] = f"conv_{result['conversation_id']}_{agent_uuid[:8]}"
+    if "session_id" in result:
+        result["session_token"] = f"conv_{result['session_id']}_{agent_uuid[:8]}"
     
     return json.dumps(result, indent=2)
 

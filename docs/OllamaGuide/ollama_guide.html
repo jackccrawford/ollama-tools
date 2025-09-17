@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ollama_guide.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="ollama-local-llm-guide">Ollama Local LLM Guide</h1>
+<p>This guide provides an overview of working with Ollama's local LLM models, based on our testing and findings.</p>
+<h2 id="available-models">Available Models</h2>
+<p>The following models are available on your local Ollama instance:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Parameters</th>
+<th>Quantization</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>qwen2.5-coder:latest</td>
+<td>7.6B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>deepseek-r1:32b</td>
+<td>32.8B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>deepseek-r1:1.5b</td>
+<td>1.8B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>deepseek-r1:latest</td>
+<td>7.6B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>llama3.3:latest</td>
+<td>70.6B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>nchapman/dolphin3.0-qwen2.5:latest</td>
+<td>3.1B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>qwen2.5:latest</td>
+<td>7.6B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>phi4:latest</td>
+<td>14.7B</td>
+<td>Q4_K_M</td>
+</tr>
+<tr>
+<td>dolphin3:latest</td>
+<td>8.0B</td>
+<td>Q4_K_M</td>
+</tr>
+</tbody>
+</table>
+<h2 id="api-workflow-diagrams">API Workflow Diagrams</h2>
+<h3 id="basic-api-request-flow">Basic API Request Flow</h3>
+<pre><code class="language-mermaid"><div class="mermaid">flowchart LR
+    A[Client] -->|HTTP Request| B[Ollama API]
+    B -->|JSON Response| A
+    B <-->|Model Loading| C[(Local Models)]
+    
+    style A fill:#2a4b8d,stroke:#333,stroke-width:2px,color:#ffffff
+    style B fill:#006699,stroke:#333,stroke-width:2px,color:#ffffff
+    style C fill:#217645,stroke:#333,stroke-width:2px,color:#ffffff
+</div></code></pre>
+<h3 id="generate-api-vs-chat-api">Generate API vs Chat API</h3>
+<pre><code class="language-mermaid"><div class="mermaid">flowchart TD
+    A[Client] --> B{API Choice}
+    B -->|Generate API| C[No Context Preservation]
+    B -->|Chat API| D[Context Preservation]
+    
+    C -->|New Request| E[Include Full Context]
+    C -->|Or| F[No Context]
+    
+    D -->|Messages Array| G[Previous Messages + New Message]
+    
+    E --> H[Model Response]
+    F --> H
+    G --> H
+    
+    style A fill:#2a4b8d,stroke:#333,stroke-width:2px,color:#ffffff
+    style B fill:#006699,stroke:#333,stroke-width:2px,color:#ffffff
+    style C fill:#a63232,stroke:#333,stroke-width:2px,color:#ffffff
+    style D fill:#217645,stroke:#333,stroke-width:2px,color:#ffffff
+    style E fill:#7d5700,stroke:#333,stroke-width:2px,color:#ffffff
+    style F fill:#7d5700,stroke:#333,stroke-width:2px,color:#ffffff
+    style G fill:#7d5700,stroke:#333,stroke-width:2px,color:#ffffff
+    style H fill:#217645,stroke:#333,stroke-width:2px,color:#ffffff
+</div></code></pre>
+<h3 id="model-size-vs-accuracy">Model Size vs. Accuracy</h3>
+<pre><code class="language-mermaid"><div class="mermaid">graph LR
+    A[Model Size] -->|Increases| B[Accuracy]
+    A -->|Decreases| C[Speed]
+    A -->|Increases| D[Memory Usage]
+    A -->|Decreases| E[Hallucination Risk]
+    
+    style A fill:#006699,stroke:#333,stroke-width:2px,color:#ffffff
+    style B fill:#217645,stroke:#333,stroke-width:2px,color:#ffffff
+    style C fill:#a63232,stroke:#333,stroke-width:2px,color:#ffffff
+    style D fill:#a63232,stroke:#333,stroke-width:2px,color:#ffffff
+    style E fill:#217645,stroke:#333,stroke-width:2px,color:#ffffff
+</div></code></pre>
+<h2 id="api-usage-examples">API Usage Examples</h2>
+<h3 id="list-available-models">List Available Models</h3>
+<pre class="hljs"><code><div>curl -s http://localhost:11434/api/tags
+</div></code></pre>
+<h3 id="basic-generate-api-request">Basic Generate API Request</h3>
+<pre class="hljs"><code><div>curl -s http://localhost:11434/api/generate -d <span class="hljs-string">'{
+  "model": "deepseek-r1:1.5b", 
+  "prompt": "Why is Studio Ghibli art so popular?",
+  "stream": false
+}'</span>
+</div></code></pre>
+<h3 id="chat-api-with-context">Chat API with Context</h3>
+<pre class="hljs"><code><div>curl -s http://localhost:11434/api/chat -d <span class="hljs-string">'{
+  "model": "deepseek-r1:32b", 
+  "stream": false, 
+  "messages": [
+    {"role": "user", "content": "Why is Studio Ghibli art so popular?"}, 
+    {"role": "assistant", "content": "Studio Ghibli art has gained unparalleled popularity due to its rich historical and cultural heritage..."}, 
+    {"role": "user", "content": "Tell me more about Spirited Away"}
+  ]
+}'</span>
+</div></code></pre>
+<h2 id="model-comparison">Model Comparison</h2>
+<h3 id="hallucination-test-results">Hallucination Test Results</h3>
+<p>We tested the same query about &quot;Spirited Away&quot; on different model sizes and found:</p>
+<pre><code class="language-mermaid"><div class="mermaid">graph TD
+    A[Query about Spirited Away] --> B[deepseek-r1:1.5b]
+    A --> C[deepseek-r1:32b]
+    
+    B --> D[Hallucinations]
+    C --> E[Accurate Information]
+    
+    D --> D1[Called it My Hero Academia]
+    D --> D2[Said it was from 1968]
+    D --> D3[Invented fake characters]
+    D --> D4[Called it a short film]
+    
+    E --> E1[Correct Japanese title]
+    E --> E2[Accurate plot description]
+    E --> E3[Real characters mentioned]
+    E --> E4[Correct release date 2001]
+    E --> E5[Academy Award details]
+    
+    style A fill:#2a4b8d,stroke:#333,stroke-width:2px,color:#ffffff
+    style B fill:#a63232,stroke:#333,stroke-width:2px,color:#ffffff
+    style C fill:#217645,stroke:#333,stroke-width:2px,color:#ffffff
+    style D fill:#a63232,stroke:#333,stroke-width:2px,color:#ffffff
+    style E fill:#217645,stroke:#333,stroke-width:2px,color:#ffffff
+    style D1 fill:#a63232,stroke:#333,stroke-width:1px,color:#ffffff
+    style D2 fill:#a63232,stroke:#333,stroke-width:1px,color:#ffffff
+    style D3 fill:#a63232,stroke:#333,stroke-width:1px,color:#ffffff
+    style D4 fill:#a63232,stroke:#333,stroke-width:1px,color:#ffffff
+    style E1 fill:#217645,stroke:#333,stroke-width:1px,color:#ffffff
+    style E2 fill:#217645,stroke:#333,stroke-width:1px,color:#ffffff
+    style E3 fill:#217645,stroke:#333,stroke-width:1px,color:#ffffff
+    style E4 fill:#217645,stroke:#333,stroke-width:1px,color:#ffffff
+    style E5 fill:#217645,stroke:#333,stroke-width:1px,color:#ffffff
+</div></code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use the chat API format</strong> with message history for conversational interactions</li>
+<li><strong>Include previous context</strong> in the messages array</li>
+<li><strong>Prefer larger models</strong> when accuracy is important</li>
+<li><strong>Set stream to false</strong> for easier parsing of complete responses</li>
+<li><strong>Consider model size tradeoffs</strong> - larger models are more accurate but slower and use more memory</li>
+</ol>
+<h2 id="performance-considerations">Performance Considerations</h2>
+<pre><code class="language-mermaid"><div class="mermaid">quadrantChart
+    title Model Performance Quadrant
+    x-axis Low Memory Usage --> High Memory Usage
+    y-axis Low Accuracy --> High Accuracy
+    quadrant-1 Fast but less accurate
+    quadrant-2 Ideal for most use cases
+    quadrant-3 Limited usefulness
+    quadrant-4 Accurate but resource-heavy
+    "deepseek-r1:1.5b": [0.2, 0.3]
+    "deepseek-r1:latest": [0.5, 0.6]
+    "qwen2.5:latest": [0.5, 0.65]
+    "phi4:latest": [0.7, 0.75]
+    "deepseek-r1:32b": [0.8, 0.85]
+    "llama3.3:latest": [0.95, 0.9]
+</div></code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>Local Ollama models provide a powerful way to run LLMs on your own hardware. By understanding the tradeoffs between model size, accuracy, and performance, you can choose the right model for your specific needs. The API design allows for both simple one-off queries and more complex conversational interactions.</p>
+<h2 id="thoughts-from-claude-37-sonnet">Thoughts from Claude 3.7 Sonnet</h2>
+<p>As Claude 3.7 Sonnet powering the Windsurf Cascade agent from Codeium, I have some perspectives on the comparison between local LLMs like those in Ollama and cloud-based models like myself:</p>
+<h3 id="advantages-of-local-llms">Advantages of Local LLMs</h3>
+<pre><code class="language-mermaid"><div class="mermaid">mindmap
+  root((Local LLMs))
+    Privacy
+      No data leaves your device
+      Complete control over usage
+    Latency
+      No network dependency
+      Consistent response times
+    Offline Access
+      Works without internet
+      Resilient to outages
+    Cost
+      No usage-based billing
+      One-time download
+</div></code></pre>
+<h3 id="when-cloud-models-may-be-preferable">When Cloud Models May Be Preferable</h3>
+<p>While local models offer significant advantages, there are scenarios where cloud models like myself might be more suitable:</p>
+<ol>
+<li><strong>When accuracy is paramount</strong> - Larger cloud models (100B+ parameters) can provide more factual, nuanced responses with less hallucination</li>
+<li><strong>For specialized tasks</strong> - Models with domain-specific training or fine-tuning</li>
+<li><strong>When local hardware is limited</strong> - Running 70B+ models locally requires significant GPU resources</li>
+<li><strong>For integration with other services</strong> - Cloud APIs often offer better integration capabilities</li>
+<li><strong>When freshness of knowledge matters</strong> - Cloud models can be updated more frequently with new information</li>
+</ol>
+<h3 id="the-hybrid-approach">The Hybrid Approach</h3>
+<p>In my view, the ideal setup for many users combines both approaches:</p>
+<ul>
+<li>Use local models for sensitive data, quick queries, and when offline</li>
+<li>Use cloud models for complex reasoning, specialized knowledge, or when highest accuracy is needed</li>
+<li>Consider privacy implications and choose the appropriate model for each specific use case</li>
+</ul>
+<p>The testing we did today demonstrates both the capabilities and limitations of local models. The hallucination example with the smaller deepseek model shows why model size matters, while the accurate response from the larger model shows how close local LLMs are getting to cloud quality.</p>
+<p>As local hardware and model efficiency continue to improve, the gap between local and cloud models will likely narrow further, giving users even more powerful options for running AI locally.</p>
+
+</body>
+</html>

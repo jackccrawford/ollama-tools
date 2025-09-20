@@ -130,13 +130,24 @@ class EnhancedOllamaMaster(OllamaMasterOrchestrator):
 
         Args:
             prompt: User's message
-            agent_uuid: UUID of the agent
+            agent_uuid: UUID of the agent (or any string - will be converted to UUID)
             model: Model to use (defaults to best available)
             session_id: Session identifier (conversations ARE memories)
 
         Returns:
             Dict with response and conversation metadata
         """
+        import uuid as uuid_lib
+
+        # Validate or generate proper UUID
+        try:
+            # Try to parse as valid UUID
+            uuid_lib.UUID(agent_uuid)
+        except (ValueError, AttributeError):
+            # Not a valid UUID - generate deterministic one from input
+            # This ensures same input always gets same UUID
+            agent_uuid = str(uuid_lib.uuid5(uuid_lib.NAMESPACE_DNS, str(agent_uuid)))
+
         # Select model if not specified
         if not model:
             model = await self._select_best_model_for_task("conversation")
